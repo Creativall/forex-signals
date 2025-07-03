@@ -1,0 +1,70 @@
+/* OverviewPage - Grid Layout para Cards */
+.features-grid-container {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 16px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.features-grid-item {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 280px !important;
+}
+
+/* Breakpoints Responsivos */
+@media (max-width: 900px) {
+  .features-grid-container {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .features-grid-container {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+}
+
+/* Garantir que os cards ocupem a altura total disponível */
+.features-grid-item > div {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Sobrescrever qualquer estilo do MUI que possa interferir */
+.MuiGrid-container.features-grid-override {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.MuiGrid-container.features-grid-override > .MuiGrid-item {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 100% !important;
+  min-height: 280px !important;
+}
+
+@media (max-width: 900px) {
+  .MuiGrid-container.features-grid-override {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .MuiGrid-container.features-grid-override {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+} 
