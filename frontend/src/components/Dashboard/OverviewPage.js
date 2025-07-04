@@ -358,7 +358,7 @@ const OverviewPage = ({ onTabChange, user }) => {
           </Typography>
           
           <Grid container spacing={{ xs: 1, sm: 2 }} sx={{ alignItems: 'stretch', width: '100%', display: 'flex', flexWrap: 'wrap', justifyContent: 'stretch' }}>
-            <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', flex: 1, minWidth: 0 }}>
+            <Grid xs={12} md={6} sx={{ display: 'flex', flex: 1, minWidth: 0 }}>
               <FeatureCard
                 icon={<School />}
                 title="Guias e Tutoriais"
@@ -366,7 +366,7 @@ const OverviewPage = ({ onTabChange, user }) => {
                 action={{ label: 'Aprender', icon: <ArrowForward /> }}
               />
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', flex: 1, minWidth: 0 }}>
+            <Grid xs={12} md={6} sx={{ display: 'flex', flex: 1, minWidth: 0 }}>
               <FeatureCard
                 icon={<Security />}
                 title="Gestão de Risco"

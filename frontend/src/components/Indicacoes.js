@@ -42,6 +42,7 @@ import { useFinance } from '../contexts/FinanceContext';
 import { TITLE_STYLES } from '../theme';
 import BalanceDisplay from './ui/BalanceDisplay';
 import * as signalsService from '../services/signalsService';
+import { apiCall } from '../config/api';
 
 // Mover dados estáticos para fora do componente para evitar re-renders
 const FOREX_PAIRS = [
@@ -267,16 +268,19 @@ const Indicacoes = () => {
         // 4. Se não há dados, gerar sinais iniciais
         if (loadedSignals.length === 0) {
           const initialSignals = generateAllSignals();
+          // Garantir que initialSignals seja sempre um array
+          const signalsArray = Array.isArray(initialSignals) ? initialSignals : [];
+          
           if (apiConnected) {
             // Salvar na API
-            for (const signal of initialSignals) {
+            for (const signal of signalsArray) {
               await signalsService.createSignal(signal);
             }
             await loadSignals(); // Recarregar da API
           } else {
             // Salvar no localStorage
-            setSignals(initialSignals);
-            saveToStorage(STORAGE_KEYS.SIGNALS_DATA, initialSignals);
+            setSignals(signalsArray);
+            saveToStorage(STORAGE_KEYS.SIGNALS_DATA, signalsArray);
           }
         }
 
@@ -324,8 +328,10 @@ const Indicacoes = () => {
         // Salvar no localStorage
         // console.log('💾 Salvando sinal no localStorage...');
         setSignals(prev => {
+          // Garantir que prev seja sempre um array
+          const prevArray = Array.isArray(prev) ? prev : [];
           // Adicionar novo sinal ao início da lista (mais recente primeiro)
-          const updatedSignals = [newSignal, ...prev];
+          const updatedSignals = [newSignal, ...prevArray];
           
           // Manter apenas os últimos 20 sinais para não sobrecarregar a interface
           const limitedSignals = updatedSignals.slice(0, 20);
@@ -369,7 +375,9 @@ const Indicacoes = () => {
       
       // Manter apenas sinais sem resultado definido (sinais ativos)
       setSignals(prev => {
-        const activeSignals = prev.filter(signal => signal.resultado === null);
+        // Garantir que prev seja sempre um array
+        const prevArray = Array.isArray(prev) ? prev : [];
+        const activeSignals = prevArray.filter(signal => signal.resultado === null);
         saveToStorage(STORAGE_KEYS.SIGNALS_DATA, activeSignals);
         return activeSignals;
       });
@@ -425,7 +433,9 @@ const Indicacoes = () => {
   // Função para atualizar valor de entrada
   const updateEntryValue = useCallback((id, value) => {
     setSignals(prev => {
-      const updated = prev.map(signal => 
+      // Garantir que prev seja sempre um array
+      const prevArray = Array.isArray(prev) ? prev : [];
+      const updated = prevArray.map(signal => 
         signal.id === id ? { ...signal, valor: value } : signal
       );
       saveToStorage(STORAGE_KEYS.SIGNALS_DATA, updated);
@@ -436,7 +446,9 @@ const Indicacoes = () => {
   // Função para atualizar payout
   const updatePayout = useCallback((id, value) => {
     setSignals(prev => {
-      const updated = prev.map(signal => 
+      // Garantir que prev seja sempre um array
+      const prevArray = Array.isArray(prev) ? prev : [];
+      const updated = prevArray.map(signal => 
         signal.id === id ? { ...signal, probabilidade: value } : signal
       );
       saveToStorage(STORAGE_KEYS.SIGNALS_DATA, updated);
@@ -459,13 +471,15 @@ const Indicacoes = () => {
     processingRef.current.add(`${id}_${result}`);
     
     setSignals(prev => {
-      const signal = prev.find(s => s.id === id);
+      // Garantir que prev seja sempre um array
+      const prevArray = Array.isArray(prev) ? prev : [];
+      const signal = prevArray.find(s => s.id === id);
       
       // Validação básica
       if (!signal) {
         // console.log('❌ Sinal não encontrado');
         processingRef.current.delete(`${id}_${result}`);
-        return prev;
+        return prevArray;
       }
       
       // Se está definindo um resultado (win/loss), verificar se campos estão preenchidos
@@ -477,7 +491,7 @@ const Indicacoes = () => {
           severity: 'warning'
         });
         processingRef.current.delete(`${id}_${result}`);
-        return prev;
+        return prevArray;
       }
       
       // Criar objeto atualizado
@@ -510,7 +524,7 @@ const Indicacoes = () => {
       }
       
       // Atualizar lista de sinais
-      const updatedSignals = prev.map(s => s.id === id ? updatedSignal : s);
+      const updatedSignals = prevArray.map(s => s.id === id ? updatedSignal : s);
       
       // Salvar dependendo da conexão
       if (isApiConnected) {
@@ -687,7 +701,10 @@ const Indicacoes = () => {
 
   // Função para filtrar por data
   const filterSignalsByDate = useCallback((signals, filter) => {
-    if (filter === 'all') return signals;
+    // Garantir que signals seja sempre um array
+    const signalsArray = Array.isArray(signals) ? signals : [];
+    
+    if (filter === 'all') return signalsArray;
     
     const today = new Date();
     const todayStr = today.toLocaleDateString('pt-BR', {
@@ -707,7 +724,7 @@ const Indicacoes = () => {
     const weekAgo = new Date(today);
     weekAgo.setDate(weekAgo.getDate() - 7);
     
-    return signals.filter(signal => {
+    return signalsArray.filter(signal => {
       const signalDate = signal.createdDate || todayStr; // fallback para sinais antigos
       
       switch (filter) {
@@ -729,7 +746,9 @@ const Indicacoes = () => {
 
   // Filtrar indicações por data e sempre 1M
   const filteredSignals = useMemo(() => {
-    return filterSignalsByDate(signals, dateFilter);
+    const result = filterSignalsByDate(signals, dateFilter);
+    // Garantir que sempre retorne um array
+    return Array.isArray(result) ? result : [];
   }, [signals, dateFilter, filterSignalsByDate]);
 
   // Estatísticas das recomendações (baseadas nos sinais filtrados)

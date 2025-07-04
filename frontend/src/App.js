@@ -1,148 +1,52 @@
-import React, { useState, createContext, useContext, useEffect } from 'react';
-import { ThemeProvider, CssBaseline, GlobalStyles, Box, CircularProgress } from '@mui/material';
+import React, { useState, useEffect, useMemo } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider, CssBaseline, Box, IconButton, Tooltip } from '@mui/material';
+import { Brightness4, Brightness7 } from '@mui/icons-material';
 import { createAppTheme } from './theme';
 import { FinanceProvider } from './contexts/FinanceContext';
+
+// Componentes
 import Login from './components/Login';
+import DashboardLayout from './components/Dashboard/DashboardLayout';
+import OverviewPage from './components/Dashboard/OverviewPage';
 import Dashboard from './components/Dashboard';
+import GestaoFinanceira from './components/GestaoFinanceira';
+import Indicacoes from './components/Indicacoes';
+import Settings from './components/Settings';
+import Protecao from './components/Protecao';
+import GrupoTelegram from './components/GrupoTelegram';
+import CorretoraAfiliado from './components/CorretoraAfiliado';
+import InstitucionalAulas from './components/InstitucionalAulas';
 
-// Contexto do tema
-const ThemeContext = createContext();
-
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme deve ser usado dentro do ThemeProvider');
-  }
-  return context;
-};
-
-// Chave para localStorage
-const USER_STORAGE_KEY = 'forex_signals_user';
-
-// Estilos globais dinâmicos baseados no tema
-const createGlobalStyles = (mode) => {
-  const isDark = mode === 'dark';
-  
-  return {
-    '*': {
-      boxSizing: 'border-box',
-    },
-    html: {
-      height: '100%',
-    },
-    body: {
-      height: '100%',
-      margin: 0,
-      padding: 0,
-      fontFamily: 'Google Sans, Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
-      backgroundColor: isDark ? '#121212' : '#f8f9fa',
-      color: isDark ? '#e8eaed' : '#202124',
-      WebkitFontSmoothing: 'antialiased',
-      MozOsxFontSmoothing: 'grayscale',
-      transition: 'background-color 0.3s ease, color 0.3s ease',
-    },
-    '#root': {
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-    },
-    // Custom scrollbar for webkit browsers
-    '::-webkit-scrollbar': {
-      width: '8px',
-      height: '8px',
-    },
-    '::-webkit-scrollbar-track': {
-      background: 'transparent',
-    },
-    '::-webkit-scrollbar-thumb': {
-      background: isDark ? '#3c4043' : '#dadce0',
-      borderRadius: '4px',
-      '&:hover': {
-        background: isDark ? '#484f58' : '#bdc1c6',
-      },
-    },
-    // Smooth transitions for interactive elements
-    'button, input, select, textarea': {
-      transition: 'all 0.2s ease-in-out',
-    },
-    // Remove default button styles
-    'button': {
-      border: 'none',
-      outline: 'none',
-      cursor: 'pointer',
-    },
-    // Modern focus styles
-    '*:focus-visible': {
-      outline: '2px solid #1a73e8',
-      outlineOffset: '2px',
-      borderRadius: '4px',
-    },
-    // Loading animation keyframes
-    '@keyframes fadeIn': {
-      from: { opacity: 0, transform: 'translateY(10px)' },
-      to: { opacity: 1, transform: 'translateY(0)' },
-    },
-    '@keyframes slideIn': {
-      from: { transform: 'translateX(-100%)' },
-      to: { transform: 'translateX(0)' },
-    },
-    '@keyframes pulse': {
-      '0%, 100%': { transform: 'scale(1)' },
-      '50%': { transform: 'scale(1.05)' },
-    },
-    '@keyframes shimmer': {
-      '0%': { backgroundPosition: '-200px 0' },
-      '100%': { backgroundPosition: 'calc(200px + 100%) 0' },
-    },
-    // Animation classes
-    '.fade-in': {
-      animation: 'fadeIn 0.3s ease-out',
-    },
-    '.slide-in': {
-      animation: 'slideIn 0.3s ease-out',
-    },
-    '.pulse': {
-      animation: 'pulse 0.6s ease-in-out',
-    },
-    // Utility classes
-    '.flex-center': {
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    '.card-hover': {
-      transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-      '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: isDark 
-          ? '0px 4px 8px 3px rgba(0,0,0,0.15), 0px 1px 3px rgba(0,0,0,0.3)'
-          : '0px 4px 8px 3px rgba(60,64,67,0.15), 0px 1px 3px rgba(60,64,67,0.3)',
-      },
-    },
-    // Theme transition for all elements
-    '*, *::before, *::after': {
-      transition: 'background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease',
-    },
-  };
-};
+// Configuração de armazenamento
+const USER_STORAGE_KEY = 'forex_user';
+const THEME_STORAGE_KEY = 'forex_theme_mode';
 
 function App() {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true); // Estado de loading para verificar sessão
-  const [themeMode, setThemeMode] = useState(() => {
-    // Recuperar preferência salva no localStorage
-    const savedTheme = localStorage.getItem('themeMode');
-    return savedTheme || 'light';
-  });
+  const [themeMode, setThemeMode] = useState('light');
 
-  // Funções para gerenciar localStorage
-  const saveUserToStorage = (userData) => {
-    try {
-      localStorage.setItem('user', JSON.stringify(userData));
-    } catch (error) {
-      // console.warn('Erro ao salvar usuário no localStorage:', error);
-    }
+  // Criar tema responsivo
+  const theme = useMemo(() => createAppTheme(themeMode), [themeMode]);
+
+  // Alternar tema
+  const toggleTheme = () => {
+    const newMode = themeMode === 'light' ? 'dark' : 'light';
+    setThemeMode(newMode);
+    localStorage.setItem(THEME_STORAGE_KEY, newMode);
   };
+
+  // Carregar configurações do localStorage
+  useEffect(() => {
+    // Carregar tema
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    if (savedTheme && ['light', 'dark'].includes(savedTheme)) {
+      setThemeMode(savedTheme);
+    }
+
+    // Carregar usuário
+    loadUserFromStorage();
+  }, []);
 
   const loadUserFromStorage = () => {
     try {
@@ -150,7 +54,6 @@ function App() {
       if (userData) {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
-        setIsAuthenticated(true);
         return parsedUser;
       }
       return null;
@@ -160,102 +63,110 @@ function App() {
     }
   };
 
-  const removeUserFromStorage = () => {
-    try {
-      localStorage.removeItem('user');
-      localStorage.removeItem('authToken');
-    } catch (error) {
-      // console.warn('Erro ao remover usuário do localStorage:', error);
-    }
-  };
-
-  // Carregar usuário do localStorage na inicialização
-  useEffect(() => {
-    const savedUser = loadUserFromStorage();
-    if (savedUser) {
-      setUser(savedUser);
-    }
-    setIsLoading(false); // Finalizar loading após verificar sessão
-  }, []);
-
-  // Salvar preferência no localStorage quando o tema mudar
-  useEffect(() => {
-    localStorage.setItem('themeMode', themeMode);
-  }, [themeMode]);
-
-  const toggleTheme = () => {
-    setThemeMode(prevMode => prevMode === 'light' ? 'dark' : 'light');
-  };
-
   const handleLogin = (userData) => {
     setUser(userData);
-    saveUserToStorage(userData); // Persistir no localStorage
-    
-    // Salvar token separadamente para a nova configuração da API
-    if (userData.token) {
-      localStorage.setItem('authToken', userData.token);
-    }
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const handleLogout = () => {
     setUser(null);
-    removeUserFromStorage(); // Remover do localStorage
-    
-    // Remover token da nova configuração da API
-    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
-  const theme = createAppTheme(themeMode);
-  const globalStyles = createGlobalStyles(themeMode);
-
-  const themeContextValue = {
-    mode: themeMode,
-    toggleTheme,
-    isDark: themeMode === 'dark',
-    isLight: themeMode === 'light',
-  };
-
-  // Mostrar loading enquanto verifica a sessão
-  if (isLoading) {
-    return (
-      <ThemeContext.Provider value={themeContextValue}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <GlobalStyles styles={globalStyles} />
+  // Componente de alternância de tema
+  const ThemeToggle = () => (
           <Box
             sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              minHeight: '100vh',
-              backgroundColor: 'background.default',
+        position: 'fixed',
+        top: 20,
+        right: 20,
+        zIndex: 1300,
+        backgroundColor: theme.palette.background.paper,
+        borderRadius: '50%',
+        boxShadow: theme.shadows[4],
+        border: `1px solid ${theme.palette.divider}`,
             }}
           >
-            <CircularProgress size={60} thickness={4} />
+      <Tooltip title={`Alternar para tema ${themeMode === 'light' ? 'escuro' : 'claro'}`}>
+        <IconButton onClick={toggleTheme} size="large">
+          {themeMode === 'light' ? <Brightness4 /> : <Brightness7 />}
+        </IconButton>
+      </Tooltip>
           </Box>
-        </ThemeProvider>
-      </ThemeContext.Provider>
     );
-  }
 
   return (
-    <ThemeContext.Provider value={themeContextValue}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <GlobalStyles styles={globalStyles} />
         <FinanceProvider>
-          <div className="fade-in">
-            {user ? (
-              <Dashboard user={user} onLogout={handleLogout} />
+        <Router>
+          <Box sx={{ minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
+            {/* Alternador de tema */}
+            <ThemeToggle />
+            
+            <Routes>
+              {/* Rota de login */}
+              <Route 
+                path="/login" 
+                element={
+                  user ? (
+                    <Navigate to="/dashboard" replace />
             ) : (
               <Login onLogin={handleLogin} />
-            )}
-          </div>
+                  )
+                } 
+              />
+              
+              {/* Rotas protegidas */}
+              <Route 
+                path="/dashboard/*" 
+                element={
+                  user ? (
+                    <DashboardLayout user={user} onLogout={handleLogout}>
+                      <Routes>
+                        <Route index element={<OverviewPage />} />
+                        <Route path="trading" element={<Dashboard />} />
+                        <Route path="financeiro" element={<GestaoFinanceira />} />
+                        <Route path="indicacoes" element={<Indicacoes />} />
+                        <Route path="protecao" element={<Protecao />} />
+                        <Route path="telegram" element={<GrupoTelegram />} />
+                        <Route path="corretora" element={<CorretoraAfiliado />} />
+                        <Route path="aulas" element={<InstitucionalAulas />} />
+                        <Route path="configuracoes" element={<Settings user={user} />} />
+                      </Routes>
+                    </DashboardLayout>
+                  ) : (
+                    <Navigate to="/login" replace />
+                  )
+                } 
+              />
+              
+              {/* Rota raiz */}
+              <Route 
+                path="/" 
+                element={
+                  user ? (
+                    <Navigate to="/dashboard" replace />
+                  ) : (
+                    <Navigate to="/login" replace />
+                  )
+                } 
+              />
+              
+              {/* Rota 404 */}
+              <Route 
+                path="*" 
+                element={
+                  <Navigate to={user ? "/dashboard" : "/login"} replace />
+                } 
+              />
+            </Routes>
+          </Box>
+        </Router>
         </FinanceProvider>
       </ThemeProvider>
-    </ThemeContext.Provider>
   );
 }
 
 export default App;
-export { ThemeContext };

@@ -94,11 +94,6 @@ export const FinanceProvider = ({ children }) => {
       // Validação de valores numéricos
       if (isNaN(entryValue) || isNaN(payoutPercent) || entryValue <= 0 || payoutPercent <= 0) {
         console.error('❌ Valores numéricos inválidos:', { entryValue, payoutPercent });
-        setNotification({
-          open: true,
-          message: 'Valores de entrada ou payout inválidos',
-          severity: 'error'
-        });
         return;
       }
 
@@ -198,16 +193,11 @@ export const FinanceProvider = ({ children }) => {
 
     } catch (error) {
       console.error('❌ Erro ao adicionar resultado de trading:', error);
-      setNotification({
-        open: true,
-        message: 'Erro ao processar resultado da operação',
-        severity: 'error'
-      });
     } finally {
       // Remover da lista de processamento
       processingTransactionsRef.current.delete(transactionKey);
     }
-  }, [setNotification]);
+  }, []);
 
   // Função para adicionar transação manual
   const addTransaction = (transactionData) => {

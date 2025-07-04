@@ -1,97 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { supabase } = require('../database');
-const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key';
-
-// Middleware para verificar autenticação
-const authenticateUser = (req, res, next) => {
-  try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-    if (!token) {
-      return res.status(401).json({ error: 'Token de acesso necessário' });
-    }
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-      if (err) {
-        return res.status(403).json({ error: 'Token inválido' });
-      }
-      req.user = user;
-      next();
-    });
-  } catch (error) {
-    console.error('❌ Erro na autenticação:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-};
 
 // =====================================================
-// CRIAR NOVO SINAL
+// LISTAR TODOS OS SINAIS (sem autenticação por enquanto)
 // =====================================================
-router.post('/', authenticateUser, async (req, res) => {
-  try {
-    const {
-      pair,
-      direction,
-      timeframe,
-      entry_time,
-      expiration_time,
-      amount,
-      probability
-    } = req.body;
-
-    // Validações básicas
-    if (!pair || !direction || !timeframe || !entry_time || !expiration_time) {
-      return res.status(400).json({
-        error: 'Campos obrigatórios: pair, direction, timeframe, entry_time, expiration_time'
-      });
-    }
-
-    if (!['CALL', 'PUT'].includes(direction)) {
-      return res.status(400).json({
-        error: 'Direction deve ser CALL ou PUT'
-      });
-    }
-
-    const { data, error } = await supabase
-      .from('forex_signals')
-      .insert([{
-        user_id: req.user.id,
-        pair,
-        direction,
-        timeframe,
-        entry_time,
-        expiration_time,
-        amount: amount || null,
-        probability: probability || null,
-        result: 'PENDING'
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('❌ Erro ao criar sinal:', error);
-      return res.status(500).json({ error: 'Erro ao salvar sinal' });
-    }
-
-    console.log('✅ Sinal criado:', data.id);
-    res.status(201).json({
-      message: 'Sinal criado com sucesso',
-      signal: data
-    });
-
-  } catch (error) {
-    console.error('❌ Erro ao criar sinal:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-});
-
-// =====================================================
-// LISTAR SINAIS DO USUÁRIO
-// =====================================================
-router.get('/', authenticateUser, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { 
       limit = 20, 
@@ -104,8 +18,7 @@ router.get('/', authenticateUser, async (req, res) => {
 
     let query = supabase
       .from('forex_signals')
-      .select('*')
-      .eq('user_id', req.user.id);
+      .select('*');
 
     // Filtros opcionais
     if (result) {
@@ -142,9 +55,68 @@ router.get('/', authenticateUser, async (req, res) => {
 });
 
 // =====================================================
+// CRIAR NOVO SINAL
+// =====================================================
+router.post('/', async (req, res) => {
+  try {
+    const {
+      pair,
+      direction,
+      entry_time,
+      expiry_time,
+      entry_value,
+      payout
+    } = req.body;
+
+    // Validações básicas
+    if (!pair || !direction || !entry_time || !expiry_time) {
+      return res.status(400).json({
+        error: 'Campos obrigatórios: pair, direction, entry_time, expiry_time'
+      });
+    }
+
+    if (!['CALL', 'PUT'].includes(direction)) {
+      return res.status(400).json({
+        error: 'Direction deve ser CALL ou PUT'
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('forex_signals')
+      .insert([{
+        pair,
+        direction,
+        entry_time,
+        expiry_time,
+        entry_value: entry_value || null,
+        payout: payout || null,
+        result: 'PENDING'
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Erro ao criar sinal:', error);
+      return res.status(500).json({ error: 'Erro ao salvar sinal' });
+    }
+
+    console.log('✅ Sinal criado:', data.id);
+    res.status(201).json({
+      message: 'Sinal criado com sucesso',
+      signal: data,
+      success: true
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao criar sinal:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// =====================================================
 // BUSCAR SINAL POR ID
 // =====================================================
-router.get('/:id', authenticateUser, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -152,7 +124,6 @@ router.get('/:id', authenticateUser, async (req, res) => {
       .from('forex_signals')
       .select('*')
       .eq('id', id)
-      .eq('user_id', req.user.id)
       .single();
 
     if (error) {
@@ -174,14 +145,13 @@ router.get('/:id', authenticateUser, async (req, res) => {
 // =====================================================
 // ATUALIZAR SINAL
 // =====================================================
-router.put('/:id', authenticateUser, async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = { ...req.body };
 
     // Remover campos que não devem ser atualizados
     delete updateData.id;
-    delete updateData.user_id;
     delete updateData.created_at;
     delete updateData.updated_at;
 
@@ -203,7 +173,6 @@ router.put('/:id', authenticateUser, async (req, res) => {
       .from('forex_signals')
       .update(updateData)
       .eq('id', id)
-      .eq('user_id', req.user.id)
       .select()
       .single();
 
@@ -230,15 +199,14 @@ router.put('/:id', authenticateUser, async (req, res) => {
 // =====================================================
 // DELETAR SINAL
 // =====================================================
-router.delete('/:id', authenticateUser, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
     const { error } = await supabase
       .from('forex_signals')
       .delete()
-      .eq('id', id)
-      .eq('user_id', req.user.id);
+      .eq('id', id);
 
     if (error) {
       console.error('❌ Erro ao deletar sinal:', error);
@@ -257,40 +225,40 @@ router.delete('/:id', authenticateUser, async (req, res) => {
 // =====================================================
 // ESTATÍSTICAS DOS SINAIS
 // =====================================================
-router.get('/stats/summary', authenticateUser, async (req, res) => {
+router.get('/stats/summary', async (req, res) => {
   try {
-    const { data, error } = await supabase
+    // Buscar todos os sinais
+    const { data: allSignals, error: allError } = await supabase
       .from('forex_signals')
-      .select('result, amount, profit_loss')
-      .eq('user_id', req.user.id);
+      .select('result, payout');
 
-    if (error) {
-      console.error('❌ Erro ao buscar estatísticas:', error);
+    if (allError) {
+      console.error('❌ Erro ao buscar estatísticas:', allError);
       return res.status(500).json({ error: 'Erro ao buscar estatísticas' });
     }
 
-    const stats = {
-      total: data.length,
-      pending: data.filter(s => s.result === 'PENDING').length,
-      wins: data.filter(s => s.result === 'WIN').length,
-      losses: data.filter(s => s.result === 'LOSS').length,
-      winRate: 0,
-      totalProfit: 0
-    };
+    // Calcular estatísticas
+    const total = allSignals.length;
+    const wins = allSignals.filter(s => s.result === 'WIN').length;
+    const losses = allSignals.filter(s => s.result === 'LOSS').length;
+    const pending = allSignals.filter(s => s.result === 'PENDING').length;
+    
+    const winRate = total > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
+    const totalPayout = allSignals
+      .filter(s => s.result === 'WIN')
+      .reduce((sum, s) => sum + (parseFloat(s.payout) || 0), 0);
 
-    const finalized = stats.wins + stats.losses;
-    if (finalized > 0) {
-      stats.winRate = Math.round((stats.wins / finalized) * 100);
-    }
-
-    stats.totalProfit = data.reduce((sum, signal) => {
-      return sum + (parseFloat(signal.profit_loss) || 0);
-    }, 0);
-
-    res.json({ stats });
+    res.json({
+      total,
+      wins,
+      losses,
+      pending,
+      winRate: parseFloat(winRate),
+      totalPayout: parseFloat(totalPayout.toFixed(2))
+    });
 
   } catch (error) {
-    console.error('❌ Erro ao buscar estatísticas:', error);
+    console.error('❌ Erro ao calcular estatísticas:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });

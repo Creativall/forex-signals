@@ -35,7 +35,7 @@ import {
   LightMode,
   DarkMode,
 } from '@mui/icons-material';
-import { useTheme as useAppTheme } from '../App';
+// Removido import incorreto
 
 const SettingCard = ({ icon, title, description, children }) => {
   const theme = useTheme();
@@ -81,7 +81,7 @@ const SettingCard = ({ icon, title, description, children }) => {
 
 const Settings = ({ user }) => {
   const theme = useTheme();
-  const appTheme = useAppTheme();
+  const [isDarkMode, setIsDarkMode] = useState(theme.palette.mode === 'dark');
   
   const [settings, setSettings] = useState({
     notifications: {
@@ -108,6 +108,7 @@ const Settings = ({ user }) => {
   });
 
   const [editMode, setEditMode] = useState(false);
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
   const [userInfo, setUserInfo] = useState({
     name: user?.name || 'Trader',
     email: user?.email || 'trader@askpay.com',
@@ -254,8 +255,8 @@ const Settings = ({ user }) => {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={appTheme.isDark}
-                      onChange={appTheme.toggleTheme}
+                      checked={isDarkMode}
+                      onChange={(e) => setIsDarkMode(e.target.checked)}
                       icon={
                         <LightMode 
                           sx={{ 
@@ -276,12 +277,12 @@ const Settings = ({ user }) => {
                   }
                   label={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {appTheme.isDark ? (
+                      {isDarkMode ? (
                         <DarkMode sx={{ color: '#90CAF9', fontSize: 20 }} />
                       ) : (
                         <LightMode sx={{ color: '#FFA726', fontSize: 20 }} />
                       )}
-                      <span>{appTheme.isDark ? 'Modo Escuro' : 'Modo Claro'}</span>
+                      <span>{isDarkMode ? 'Modo Escuro' : 'Modo Claro'}</span>
                     </Box>
                   }
                 />

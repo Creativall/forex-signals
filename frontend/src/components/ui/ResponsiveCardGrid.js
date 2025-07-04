@@ -37,7 +37,7 @@ const ResponsiveCardGrid = ({
     >
       {items.map((item, index) => (
         <Grid 
-          size={{ xs: 12, sm: 6, md: 3 }}  /* Grid v2: definir tamanhos responsivos */
+          size={{ xs: 12, sm: 6, md: 3 }}
           key={item.id || index} 
           sx={{ 
             display: 'flex', 
